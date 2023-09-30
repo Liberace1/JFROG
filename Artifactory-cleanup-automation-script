@@ -1,0 +1,47 @@
+import requests
+
+# Artifactory configuration
+artifactory_url = "https://YOUR-ARTIFACTORY-URL/artifactory/"
+base_url = artifactory_url + "api/storage/"
+username = "YOUR-USERNAME"
+password = "YOUR-PASSWORD"
+
+# Criteria for artifact deletion
+criteria = {
+    "stat.downloaded": {"$before": "2022-12-10T16:00:00.000Z"}
+}
+
+# Function to list all repositories
+def list_repositories():
+    response = requests.get(artifactory_url + "api/repositories", auth=(username, password))
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Failed to list repositories, Status Code: {response.status_code}")
+
+# Function to delete artifacts based on criteria
+def delete_artifacts(repo_key):
+    repo_url = base_url + repo_key
+    response = requests.post(repo_url + "?list&deep=1", auth=(username, password), json=criteria)
+    
+    if response.status_code == 200:
+        data = response.json()
+        for artifact in data["files"]:
+            artifact_path = artifact["uri"]
+            delete_url = repo_url + artifact_path
+            response = requests.delete(delete_url, auth=(username, password))
+            if response.status_code == 204:
+                print(f"Deleted: {artifact_path}")
+            else:
+                print(f"Failed to delete: {artifact_path}, Status Code: {response.status_code}")
+    else:
+        print(f"Failed to list artifacts in repository {repo_key}, Status Code: {response.status_code}")
+
+# List all repositories
+repositories = list_repositories()
+
+# Iterate through repositories and delete artifacts
+for repo in repositories:
+    repo_key = repo["key"]
+    print(f"Deleting artifacts in repository: {repo_key}")
+    delete_artifacts(repo_key)
