@@ -1,0 +1,6 @@
+items.find(
+  {
+    "repo": "your-repository-name", //add your repo name
+    "stat.downloaded": {"$before": "30d"} //files downloaded before 30days ago
+  }
+).include("name", "repo", "path")
