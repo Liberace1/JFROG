@@ -14,4 +14,4 @@ You can run  curl against query.aql --> */
 
 
 # JFROG -- Artifactroy cleanup automation
-To automate the process of deleting artifacts in an Artifactory repository without manually specifying the repository name each time, you can create a script that iterates through all repositories and deletes artifacts that match your criteria. run the artifactory-cleanup.py
+To automate the process of deleting artifacts in an Artifactory repository without manually specifying the repository name each time, you can create a script that iterates through all repositories and deletes artifacts that match your criteria. run the artifactory-cleanup-automation-script.py
