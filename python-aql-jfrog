@@ -1,0 +1,60 @@
+import subprocess
+import json
+
+# Artifactory configuration
+artifactory_url = "https://YOUR-ARTIFACTORY-URL/artifactory/"
+username = "YOUR-USERNAME"
+password = "YOUR-PASSWORD"
+aql_file_path = "path/to/your/aql/query.aql"  # Update with the path to your AQL query file
+
+# Function to list artifacts in a repository using an AQL query
+def list_artifacts_with_aql(aql_query):
+    # Construct the curl command to execute the AQL query
+    curl_command = [
+        "curl",
+        "-u",
+        f"{username}:{password}",
+        "-k",
+        "-X",
+        "POST",
+        f"{artifactory_url}api/search/aql",
+        "--data-binary",
+        f"@{aql_query}",  # Use the AQL query file
+    ]
+
+    try:
+        result = subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+        # Check for HTTP status code indicating success (200 OK)
+        if result.returncode != 0:
+            print(f"Error: HTTP request failed with status code {result.returncode}")
+            print("Error Response:")
+            print(result.stderr.decode())
+            return
+
+        # Parse the JSON response
+        try:
+            artifacts_response = json.loads(result.stdout.decode())
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON response: {e}")
+            return
+
+        # Extract and print the names of artifacts
+        artifacts = artifacts_response.get("results", [])
+        if artifacts:
+            for artifact in artifacts:
+                print("Artifact Name:", artifact["name"])
+            print("=====")  # Separator for artifacts
+        else:
+            print("No artifacts found.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+
+# Usage example
+if __name__ == "__main__":
+    # Read the AQL query from the specified file
+    with open(aql_file_path, "r") as aql_file:
+        aql_query = aql_file.read()
+
+    # List artifacts using the AQL query
+    list_artifacts_with_aql(aql_query)
