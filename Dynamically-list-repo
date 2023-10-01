@@ -1,0 +1,45 @@
+import requests
+
+# Artifactory configuration
+artifactory_url = "https://YOUR-ARTIFACTORY-URL/artifactory/"
+base_url = artifactory_url + "api/storage/"
+username = "YOUR-USERNAME"
+password = "YOUR-PASSWORD"
+
+# Criteria for artifact checking
+criteria = {
+    "stat.downloaded": {"$before": "2022-12-10T16:00:00.000Z"}
+}
+
+# Function to list repositories
+def list_repositories():
+    response = requests.get(artifactory_url + "api/repositories", auth=(username, password), verify=False)  # Add 'verify=False' to ignore SSL warnings
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Failed to list repositories, Status Code: {response.status_code}")
+
+# Function to list artifacts based on criteria
+def list_artifacts(repo_key):
+    repo_url = base_url + repo_key
+    response = requests.post(repo_url + "?list&deep=1", auth=(username, password), json=criteria, verify=False)  # Add 'verify=False' to ignore SSL warnings
+    
+    if response.status_code == 200:
+        data = response.json()
+        if "files" in data:
+            for artifact in data["files"]:
+                artifact_path = artifact["uri"]
+                print(f"Artifact to check in repository {repo_key}: {artifact_path}")
+        else:
+            print(f"No artifacts found in repository {repo_key}")
+    else:
+        print(f"Failed to list artifacts in repository {repo_key}, Status Code: {response.status_code}")
+
+# List all repositories
+repositories = list_repositories()
+
+# Iterate through repositories and list artifacts
+for repo in repositories:
+    repo_key = repo["key"]
+    print(f"Checking artifacts in repository: {repo_key}")
+    list_artifacts(repo_key)
