@@ -72,30 +72,25 @@ def list_all_repositories():
             return
 
         # Parse the JSON response
-        try:
-            repositories = json.loads(result.stdout.decode())
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON response: {e}")
-            print("Raw Response:")
-            print(result.stdout.decode())
-            return
+        repositories = json.loads(result.stdout.decode())
 
-        # Iterate through repositories
+        # Loop through each repository and fetch its artifacts
         for repo in repositories:
-            repo_name = repo["key"]
-            print("Repository Key:", repo_name)
+            repo_key = repo["key"]
+            print("Repository Key:", repo_key)
             print("Repository Type:", repo["packageType"])
             print("Repository URL:", repo["url"])
             print("-----")
 
-            # List artifacts for the current repository
-            list_artifacts(repo_name)
+            # Fetch artifacts for the current repository
+            fetch_artifacts(repo_key)
+
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
 
-# Function to list artifacts in a repository using curl
-def list_artifacts(repo_key):
-    # Construct the curl command to list artifacts in the specified repository
+# Function to fetch artifacts in a repository using curl
+def fetch_artifacts(repo_key):
+    # Construct the curl command to fetch all artifacts in the specified repository
     curl_command = [
         "curl",
         "-u",
@@ -103,7 +98,7 @@ def list_artifacts(repo_key):
         "-k",
         "-X",
         "GET",
-        f"{artifactory_url}{repo_key}/"
+        f"{artifactory_url}{repo_key}/",
     ]
 
     try:
@@ -120,29 +115,10 @@ def list_artifacts(repo_key):
         print("Response Content:")
         print(result.stdout.decode())
 
-        # Check if the response is HTML
-        if result.stdout.startswith(b'<html>'):
-            print(f"HTML Response Detected for repository {repo_key}.")
-            return
-
-        # Parse the JSON response
-        try:
-            artifacts_response = json.loads(result.stdout.decode())
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON response: {e}")
-            return
-
-        # Extract and print the names of artifacts
-        artifacts = artifacts_response.get("children", [])
-        if artifacts:
-            for artifact in artifacts:
-                print("Artifact Name:", artifact["uri"])
-            print("=====")  # Separator for artifacts
-        else:
-            print(f"No artifacts found in repository {repo_key}.")
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
 
 # Usage example
 if __name__ == "__main__":
     list_all_repositories()
+
