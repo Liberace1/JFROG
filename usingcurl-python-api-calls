@@ -63,27 +63,35 @@ def list_all_repositories():
 
     try:
         result = subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        # Check if the response is empty
-        if not result.stdout:
-            print("No repositories found.")
+
+        # Check for HTTP status code indicating success (200 OK)
+        if result.returncode != 0:
+            print(f"Error: HTTP request failed with status code {result.returncode}")
+            print("Error Response:")
+            print(result.stderr.decode())
             return
 
         # Parse the JSON response
-        repositories = json.loads(result.stdout.decode())
+        try:
+            repositories = json.loads(result.stdout.decode())
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON response: {e}")
+            print("Raw Response:")
+            print(result.stdout.decode())
+            return
 
         # Iterate through repositories
         for repo in repositories:
-            print("Repository Key:", repo["key"])
+            repo_name = repo["key"]
+            print("Repository Key:", repo_name)
             print("Repository Type:", repo["packageType"])
             print("Repository URL:", repo["url"])
             print("-----")
-            
+
             # List artifacts for the current repository
-            list_artifacts(repo["key"])
+            list_artifacts(repo_name)
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON response: {e}")
 
 # Function to list artifacts in a repository using curl
 def list_artifacts(repo_key):
@@ -100,13 +108,22 @@ def list_artifacts(repo_key):
 
     try:
         result = subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        # Check if the response is empty
-        if not result.stdout:
-            print(f"No artifacts found in repository {repo_key}.")
+
+        # Check for HTTP status code indicating success (200 OK)
+        if result.returncode != 0:
+            print(f"Error: HTTP request failed with status code {result.returncode}")
+            print("Error Response:")
+            print(result.stderr.decode())
             return
 
         # Parse the JSON response
-        artifacts_response = json.loads(result.stdout.decode())
+        try:
+            artifacts_response = json.loads(result.stdout.decode())
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON response: {e}")
+            print("Raw Response:")
+            print(result.stdout.decode())
+            return
 
         # Extract and print the names of artifacts
         artifacts = artifacts_response.get("children", [])
@@ -118,9 +135,8 @@ def list_artifacts(repo_key):
             print(f"No artifacts found in repository {repo_key}.")
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON response: {e}")
 
 # Usage example
 if __name__ == "__main__":
     list_all_repositories()
+
