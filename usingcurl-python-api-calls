@@ -33,3 +33,81 @@ except subprocess.CalledProcessError as e:
     print(f"Error: {e}")
 except json.JSONDecodeError as e:
     print(f"Error decoding JSON response: {e}")
+
+
+
+------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
+NEW CODE--MODIFIED
+import subprocess
+import json
+
+# Artifactory configuration
+artifactory_url = "https://YOUR-ARTIFACTORY-URL/artifactory/"
+username = "YOUR-USERNAME"
+password = "YOUR-PASSWORD"
+
+# Function to list all repositories
+def list_all_repositories():
+    # Construct the curl command to list all repositories
+    curl_command = [
+        "curl",
+        "-u",
+        f"{username}:{password}",
+        "-k",
+        "-X",
+        "GET",
+        f"{artifactory_url}api/repositories",
+    ]
+
+    try:
+        result = subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        # Parse the JSON response
+        repositories = json.loads(result.stdout.decode())
+
+        # Iterate through repositories
+        for repo in repositories:
+            print("Repository Key:", repo["key"])
+            print("Repository Type:", repo["packageType"])
+            print("Repository URL:", repo["url"])
+            print("-----")
+            
+            # List artifacts for the current repository
+            list_artifacts(repo["key"])
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON response: {e}")
+
+# Function to list artifacts in a repository using curl
+def list_artifacts(repo_key):
+    # Construct the curl command to list artifacts in the specified repository
+    curl_command = [
+        "curl",
+        "-u",
+        f"{username}:{password}",
+        "-k",
+        "-X",
+        "GET",
+        f"{artifactory_url}{repo_key}/"
+    ]
+
+    try:
+        result = subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        # Parse the JSON response
+        artifacts_response = json.loads(result.stdout.decode())
+
+        # Extract and print the names of artifacts
+        artifacts = artifacts_response["children"]
+        for artifact in artifacts:
+            print("Artifact Name:", artifact["uri"])
+        print("=====")  # Separator for artifacts
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON response: {e}")
+
+# Usage example
+if __name__ == "__main__":
+    list_all_repositories()
+
