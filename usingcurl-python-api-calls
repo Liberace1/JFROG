@@ -116,13 +116,20 @@ def list_artifacts(repo_key):
             print(result.stderr.decode())
             return
 
+        # Debug: Print the response content
+        print("Response Content:")
+        print(result.stdout.decode())
+
+        # Check if the response is HTML
+        if result.stdout.startswith(b'<html>'):
+            print(f"HTML Response Detected for repository {repo_key}.")
+            return
+
         # Parse the JSON response
         try:
             artifacts_response = json.loads(result.stdout.decode())
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON response: {e}")
-            print("Raw Response:")
-            print(result.stdout.decode())
             return
 
         # Extract and print the names of artifacts
@@ -139,4 +146,3 @@ def list_artifacts(repo_key):
 # Usage example
 if __name__ == "__main__":
     list_all_repositories()
-
