@@ -39,6 +39,7 @@ except json.JSONDecodeError as e:
 ------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------
 NEW CODE--MODIFIED
+
 import subprocess
 import json
 
@@ -62,6 +63,11 @@ def list_all_repositories():
 
     try:
         result = subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        # Check if the response is empty
+        if not result.stdout:
+            print("No repositories found.")
+            return
+
         # Parse the JSON response
         repositories = json.loads(result.stdout.decode())
 
@@ -94,14 +100,22 @@ def list_artifacts(repo_key):
 
     try:
         result = subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        # Check if the response is empty
+        if not result.stdout:
+            print(f"No artifacts found in repository {repo_key}.")
+            return
+
         # Parse the JSON response
         artifacts_response = json.loads(result.stdout.decode())
 
         # Extract and print the names of artifacts
-        artifacts = artifacts_response["children"]
-        for artifact in artifacts:
-            print("Artifact Name:", artifact["uri"])
-        print("=====")  # Separator for artifacts
+        artifacts = artifacts_response.get("children", [])
+        if artifacts:
+            for artifact in artifacts:
+                print("Artifact Name:", artifact["uri"])
+            print("=====")  # Separator for artifacts
+        else:
+            print(f"No artifacts found in repository {repo_key}.")
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
     except json.JSONDecodeError as e:
@@ -110,4 +124,3 @@ def list_artifacts(repo_key):
 # Usage example
 if __name__ == "__main__":
     list_all_repositories()
-
