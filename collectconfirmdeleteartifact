@@ -1,0 +1,44 @@
+# Function to collect and list artifacts marked for deletion and confirm before deleting
+function collect_and_confirm_delete() {
+    local repo_key="$1"
+    # AQL query to find artifacts marked for deletion in the specified repository
+    local aql_query='items.find({
+      "repo": {"$eq": "'"$repo_key"'"},
+      "stat.downloads": {"$eq": 0},
+      "stat.artifactory.system.created_by.deleted": {"$eq": true}
+    }).include("name")'
+
+    # Construct the URL for the AQL search endpoint
+    local aql_search_url="${ARTIFACTORY_URL}api/search/aql"
+
+    # Execute the curl command to search for artifacts marked for deletion using AQL
+    local result=$(curl -u "${USERNAME}:${PASSWORD}" -X POST "${aql_search_url}" -H "Content-Type: text/plain" -d "${aql_query}" -k)
+
+    # Parse the result to extract artifact names
+    local artifact_names=$(echo "$result" | jq -r '.results[].name')
+
+    # Check if there are artifacts marked for deletion
+    if [ -z "$artifact_names" ]; then
+        echo "No artifacts marked for deletion found in repository: $repo_key"
+        return
+    fi
+
+    # List artifacts marked for deletion
+    echo "Artifacts marked for deletion in repository: $repo_key"
+    echo "$artifact_names"
+
+    # Ask for confirmation before proceeding with deletion
+    read -p "Do you want to delete these artifacts? (yes/no): " confirm
+    if [ "$confirm" = "yes" ]; then
+        # Delete artifacts if confirmed
+        for artifact_name in $artifact_names; do
+            local delete_url="${ARTIFACTORY_URL}${repo_key}/${artifact_name}"
+            echo "Deleting artifact: $artifact_name"
+            # Execute the curl command to delete the artifact
+            curl -u "${USERNAME}:${PASSWORD}" -X DELETE "$delete_url" -k
+        done
+        echo "Artifacts deleted successfully."
+    else
+        echo "Deletion canceled."
+    fi
+}
