@@ -51,3 +51,74 @@ done
 # List artifacts that have never been downloaded
 echo -e "\nArtifacts that have never been downloaded:"
 list_never_downloaded_artifacts
+------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+#!/bin/bash
+
+# Artifactory configuration
+ARTIFACTORY_URL="https://YOUR-ARTIFACTORY-URL/artifactory/"
+USERNAME="YOUR-USERNAME"
+PASSWORD="YOUR-PASSWORD"
+
+# Function to list all repositories
+function list_all_repositories() {
+    # Construct the curl command to list all repositories
+    curl -u "${USERNAME}:${PASSWORD}" -X GET "${ARTIFACTORY_URL}api/repositories" -k
+}
+
+# Function to list artifacts in a repository
+function list_artifacts_in_repository() {
+    local repo_key="$1"
+    # Construct the curl command to list artifacts in the repository
+    curl -u "${USERNAME}:${PASSWORD}" -X GET "${ARTIFACTORY_URL}${repo_key}/" -H "Accept: application/json" -k
+}
+
+# Function to retrieve properties and additional info for an artifact
+function get_artifact_info() {
+    local repo_key="$1"
+    local artifact_path="$2"
+    # Construct the curl command to get properties and additional info for the artifact
+    curl -u "${USERNAME}:${PASSWORD}" -X GET "${ARTIFACTORY_URL}${repo_key}/${artifact_path}" -H "Accept: application/json" -k
+}
+
+# Function to list artifacts downloaded within the last 6 months using AQL for a specific repository
+function list_recently_downloaded_artifacts() {
+    local repo_key="$1"
+    # Calculate the date 6 months ago in ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
+    local six_months_ago=$(date --date="6 months ago" -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+    # AQL query to find artifacts downloaded within the last 6 months in the specified repository
+    local aql_query='items.find({
+      "repo": {"$eq": "'"$repo_key"'"},
+      "created": {"$gt": "'"$six_months_ago"'"}
+    })'
+    
+    # Construct the URL for the AQL search endpoint
+    local aql_search_url="${ARTIFACTORY_URL}api/search/aql"
+    
+    # Execute the curl command to search for artifacts using AQL
+    curl -u "${USERNAME}:${PASSWORD}" -X POST "${aql_search_url}" -H "Content-Type: text/plain" -d "${aql_query}" -k
+}
+
+# List all repositories
+echo "List of all repositories:"
+repo_list=$(list_all_repositories | jq -r '.[].key')
+
+for repo in $repo_list; do
+    echo "Repository: $repo"
+    # List artifacts in the current repository
+    artifacts=$(list_artifacts_in_repository "$repo" | jq -r '.children[].uri')
+    for artifact in $artifacts; do
+        artifact_path=$(basename "$artifact")
+        echo "Artifact: $artifact_path"
+        artifact_info=$(get_artifact_info "$repo" "$artifact_path")
+        echo "Properties and Additional Info:"
+        echo "$artifact_info"
+        echo "====="
+    done
+
+    # List artifacts downloaded within the last 6 months for the current repository
+    echo -e "\nArtifacts downloaded within the last 6 months for $repo:"
+    list_recently_downloaded_artifacts "$repo"
+    echo "====="
+done
+
